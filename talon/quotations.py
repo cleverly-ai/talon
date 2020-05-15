@@ -12,8 +12,7 @@ from copy import deepcopy
 
 from lxml import html, etree
 
-from talon.utils import (get_delimiter, html_tree_to_text,
-                         html_document_fromstring)
+from talon.utils import get_delimiter, html_tree_to_text, html_document_fromstring
 from talon import html_quotations
 from six.moves import range
 import six
@@ -25,76 +24,92 @@ log = logging.getLogger(__name__)
 RE_FWD = re.compile("^[-]+[ ]*Forwarded message[ ]*[-]+\s*$", re.I | re.M)
 
 RE_ON_DATE_SMB_WROTE = re.compile(
-    u'(-*[>]?[ ]?({0})[ ].*({1})(.*\n){{0,2}}.*({2}):?-*)'.format(
+    u"(-*[>]?[ ]?({0})[ ].*({1})(.*\n){{0,2}}.*({2}):?-*)".format(
         # Beginning of the line
-        u'|'.join((
-            # English
-            'On',
-            # French
-            'Le',
-            # Polish
-            'W dniu',
-            # Dutch
-            'Op',
-            # German
-            'Am',
-            # Portuguese
-            'Em',
-            # Norwegian
-            u'På',
-            # Swedish, Danish
-            'Den',
-            # Vietnamese
-            u'Vào',
-        )),
+        u"|".join(
+            (
+                # English
+                "On",
+                # French
+                "Le",
+                # Polish
+                "W dniu",
+                # Dutch
+                "Op",
+                # German
+                "Am",
+                # Portuguese
+                "Em",
+                # Norwegian
+                u"På",
+                # Swedish, Danish
+                "Den",
+                # Vietnamese
+                u"Vào",
+            )
+        ),
         # Date and sender separator
-        u'|'.join((
-            # most languages separate date and sender address by comma
-            ',',
-            # polish date and sender address separator
-            u'użytkownik'
-        )),
+        u"|".join(
+            (
+                # most languages separate date and sender address by comma
+                ",",
+                # polish date and sender address separator
+                u"użytkownik",
+            )
+        ),
         # Ending of the line
-        u'|'.join((
-            # English
-            'wrote', 'sent',
-            # French
-            u'a écrit',
-            # Polish
-            u'napisał',
-            # Dutch
-            'schreef','verzond','geschreven',
-            # German
-            'schrieb',
-            # Portuguese
-            'escreveu',
-            # Norwegian, Swedish
-            'skrev',
-            # Vietnamese
-            u'đã viết',
-        ))
-    ))
+        u"|".join(
+            (
+                # English
+                "wrote",
+                "sent",
+                # French
+                u"a écrit",
+                # Polish
+                u"napisał",
+                # Dutch
+                "schreef",
+                "verzond",
+                "geschreven",
+                # German
+                "schrieb",
+                # Portuguese
+                "escreveu",
+                # Norwegian, Swedish
+                "skrev",
+                # Vietnamese
+                u"đã viết",
+            )
+        ),
+    )
+)
 # Special case for languages where text is translated like this: 'on {date} wrote {somebody}:'
 RE_ON_DATE_WROTE_SMB = re.compile(
-    u'(-*[>]?[ ]?({0})[ ].*(.*\n){{0,2}}.*({1})[ ]*.*:)'.format(
+    u"(-*[>]?[ ]?({0})[ ].*(.*\n){{0,2}}.*({1})[ ]*.*:)".format(
         # Beginning of the line
-        u'|'.join((
-        	'Op',
-        	#German
-        	'Am'
-        )),
+        u"|".join(
+            (
+                "Op",
+                # German
+                "Am",
+            )
+        ),
         # Ending of the line
-        u'|'.join((
-            # Dutch
-            'schreef','verzond','geschreven',
-            # German
-            'schrieb'
-        ))
+        u"|".join(
+            (
+                # Dutch
+                "schreef",
+                "verzond",
+                "geschreven",
+                # German
+                "schrieb",
+            )
+        ),
     )
-    )
+)
 
 RE_QUOTATION = re.compile(
-    r'''
+    r"""
     (
         # quotation border: splitter line or a number of quotation marker lines
         (?:
@@ -112,10 +127,12 @@ RE_QUOTATION = re.compile(
 
     # after quotations should be text only or nothing at all
     [te]*$
-    ''', re.VERBOSE)
+    """,
+    re.VERBOSE,
+)
 
 RE_EMPTY_QUOTATION = re.compile(
-    r'''
+    r"""
     (
         # quotation border: splitter line or a number of quotation marker lines
         (?:
@@ -125,38 +142,79 @@ RE_EMPTY_QUOTATION = re.compile(
         )
     )
     e*
-    ''', re.VERBOSE)
+    """,
+    re.VERBOSE,
+)
 
 # ------Original Message------ or ---- Reply Message ----
 # With variations in other languages.
-RE_ORIGINAL_MESSAGE = re.compile(u'[\s]*[-]+[ ]*({})[ ]*[-]+'.format(
-    u'|'.join((
-        # English
-        'Original Message', 'Reply Message',
-        # German
-        u'Ursprüngliche Nachricht', 'Antwort Nachricht',
-        # Danish
-        'Oprindelig meddelelse',
-    ))), re.I)
+RE_ORIGINAL_MESSAGE = re.compile(
+    u"[\s]*[-]+[ ]*({})[ ]*[-]+".format(
+        u"|".join(
+            (
+                # English
+                "Original Message",
+                "Reply Message",
+                # German
+                u"Ursprüngliche Nachricht",
+                "Antwort Nachricht",
+                # Danish
+                "Oprindelig meddelelse",
+            )
+        )
+    ),
+    re.I,
+)
 
-RE_FROM_COLON_OR_DATE_COLON = re.compile(u'((_+\r?\n)?[\s]*:?[*]?({})[\s]?:([^\n$]+\n){{1,2}}){{2,}}'.format(
-    u'|'.join((
-        # "From" in different languages.
-        'From', 'Van', 'De', 'Von', 'Fra', u'Från',
-        # "Date" in different languages.
-        'Date', '[S]ent', 'Datum', u'Envoyé', 'Skickat', 'Sendt', 'Gesendet',
-        # "Subject" in different languages.
-        'Subject', 'Betreff', 'Objet', 'Emne', u'Ämne',
-        # "To" in different languages.
-        'To', 'An', 'Til', u'À', 'Till'
-    ))), re.I | re.M)
+RE_FROM_COLON_OR_DATE_COLON = re.compile(
+    u"((_+\r?\n)?[\s]*:?[*]?({})[\s]?:([^\n$]+\n){{1,2}}){{2,}}".format(
+        u"|".join(
+            (
+                # "From" in different languages.
+                "From",
+                "Van",
+                "De",
+                "Von",
+                "Fra",
+                u"Från",
+                # "Date" in different languages.
+                "Date",
+                "[S]ent",
+                "Datum",
+                u"Envoyé",
+                "Skickat",
+                "Sendt",
+                "Gesendet",
+                # "Subject" in different languages.
+                "Subject",
+                "Betreff",
+                "Objet",
+                "Emne",
+                u"Ämne",
+                # "To" in different languages.
+                "To",
+                "An",
+                "Til",
+                u"À",
+                "Till",
+            )
+        )
+    ),
+    re.I | re.M,
+)
 
 # ---- John Smith wrote ----
-RE_ANDROID_WROTE = re.compile(u'[\s]*[-]+.*({})[ ]*[-]+'.format(
-    u'|'.join((
-        # English
-        'wrote',
-    ))), re.I)
+RE_ANDROID_WROTE = re.compile(
+    u"[\s]*[-]+.*({})[ ]*[-]+".format(
+        u"|".join(
+            (
+                # English
+                "wrote",
+            )
+        )
+    ),
+    re.I,
+)
 
 # Support polymail.io reply format
 # On Tue, Apr 11, 2017 at 10:07 PM John Smith
@@ -164,7 +222,7 @@ RE_ANDROID_WROTE = re.compile(u'[\s]*[-]+.*({})[ ]*[-]+'.format(
 # <
 # mailto:John Smith <johnsmith@gmail.com>
 # > wrote:
-RE_POLYMAIL = re.compile('On.*\s{2}<\smailto:.*\s> wrote:', re.I)
+RE_POLYMAIL = re.compile("On.*\s{2}<\smailto:.*\s> wrote:", re.I)
 
 SPLITTER_PATTERNS = [
     RE_ORIGINAL_MESSAGE,
@@ -178,16 +236,17 @@ SPLITTER_PATTERNS = [
     # bob@example.com>:
     re.compile("\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s+GMT.*\s\S+@\S+", re.S),
     # Thu, 26 Jun 2014 14:00:51 +0400 Bob <bob@example.com>:
-    re.compile('\S{3,10}, \d\d? \S{3,10} 20\d\d,? \d\d?:\d\d(:\d\d)?'
-               '( \S+){3,6}@\S+:'),
+    re.compile(
+        "\S{3,10}, \d\d? \S{3,10} 20\d\d,? \d\d?:\d\d(:\d\d)?" "( \S+){3,6}@\S+:"
+    ),
     # Sent from Samsung MobileName <address@example.com> wrote:
-    re.compile('Sent from Samsung.* \S+@\S+> wrote'),
+    re.compile("Sent from Samsung.* \S+@\S+> wrote"),
     RE_ANDROID_WROTE,
-    RE_POLYMAIL
-    ]
+    RE_POLYMAIL,
+]
 
-RE_LINK = re.compile('<(http://[^>]*)>')
-RE_NORMALIZED_LINK = re.compile('@@(http://[^>@]*)@@')
+RE_LINK = re.compile("<(http://[^>]*)>")
+RE_NORMALIZED_LINK = re.compile("@@(http://[^>@]*)@@")
 
 RE_PARENTHESIS_LINK = re.compile("\(https?://")
 
@@ -197,21 +256,21 @@ MAX_LINES_COUNT = 1000
 # leads to excessive processing time
 MAX_HTML_LEN = 2794202
 
-QUOT_PATTERN = re.compile('^>+ ?')
-NO_QUOT_LINE = re.compile('^[^>].*[\S].*')
+QUOT_PATTERN = re.compile("^>+ ?")
+NO_QUOT_LINE = re.compile("^[^>].*[\S].*")
 
 # Regular expression to identify if a line is a header.
 RE_HEADER = re.compile(": ")
 
 
-def extract_from(msg_body, content_type='text/plain'):
+def extract_from(msg_body, content_type="text/plain"):
     try:
-        if content_type == 'text/plain':
+        if content_type == "text/plain":
             return extract_from_plain(msg_body)
-        elif content_type == 'text/html':
+        elif content_type == "text/html":
             return extract_from_html(msg_body)
     except Exception:
-        log.exception('ERROR extracting message')
+        log.exception("ERROR extracting message")
 
     return msg_body
 
@@ -224,7 +283,7 @@ def remove_initial_spaces_and_mark_message_lines(lines):
     """
     i = 0
     while i < len(lines):
-        lines[i] = lines[i].lstrip(' ')
+        lines[i] = lines[i].lstrip(" ")
         i += 1
     return mark_message_lines(lines)
 
@@ -242,33 +301,33 @@ def mark_message_lines(lines):
     >>> mark_message_lines(['answer', 'From: foo@bar.com', '', '> question'])
     'tsem'
     """
-    markers = ['e' for _ in lines]
+    markers = ["e" for _ in lines]
     i = 0
     while i < len(lines):
         if not lines[i].strip():
-            markers[i] = 'e'  # empty line
+            markers[i] = "e"  # empty line
         elif QUOT_PATTERN.match(lines[i]):
-            markers[i] = 'm'  # line with quotation marker
+            markers[i] = "m"  # line with quotation marker
         elif RE_FWD.match(lines[i]):
-            markers[i] = 'f'  # ---- Forwarded message ----
+            markers[i] = "f"  # ---- Forwarded message ----
         else:
             # in case splitter is spread across several lines
-            splitter = is_splitter('\n'.join(lines[i:i + SPLITTER_MAX_LINES]))
+            splitter = is_splitter("\n".join(lines[i : i + SPLITTER_MAX_LINES]))
 
             if splitter:
                 # append as many splitter markers as lines in splitter
                 splitter_lines = splitter.group().splitlines()
                 for j in range(len(splitter_lines)):
-                    markers[i + j] = 's'
+                    markers[i + j] = "s"
 
                 # skip splitter lines
                 i += len(splitter_lines) - 1
             else:
                 # probably the line from the last message in the conversation
-                markers[i] = 't'
+                markers[i] = "t"
         i += 1
 
-    return ''.join(markers)
+    return "".join(markers)
 
 
 def process_marked_lines(lines, markers, return_flags=[False, -1, -1]):
@@ -282,47 +341,46 @@ def process_marked_lines(lines, markers, return_flags=[False, -1, -1]):
     return_flags = [were_lines_deleted, first_deleted_line,
                     last_deleted_line]
     """
-    markers = ''.join(markers)
+    markers = "".join(markers)
     # if there are no splitter there should be no markers
-    if 's' not in markers and not re.search('(me*){3}', markers):
-        markers = markers.replace('m', 't')
+    if "s" not in markers and not re.search("(me*){3}", markers):
+        markers = markers.replace("m", "t")
 
-    if re.match('[te]*f', markers):
+    if re.match("[te]*f", markers):
         return_flags[:] = [False, -1, -1]
         return lines
 
     # inlined reply
     # use lookbehind assertions to find overlapping entries e.g. for 'mtmtm'
     # both 't' entries should be found
-    for inline_reply in re.finditer('(?<=m)e*(t[te]*)m', markers):
+    for inline_reply in re.finditer("(?<=m)e*(t[te]*)m", markers):
         # long links could break sequence of quotation lines but they shouldn't
         # be considered an inline reply
-        links = (
-            RE_PARENTHESIS_LINK.search(lines[inline_reply.start() - 1]) or
-            RE_PARENTHESIS_LINK.match(lines[inline_reply.start()].strip()))
+        links = RE_PARENTHESIS_LINK.search(
+            lines[inline_reply.start() - 1]
+        ) or RE_PARENTHESIS_LINK.match(lines[inline_reply.start()].strip())
         if not links:
             return_flags[:] = [False, -1, -1]
             return lines
 
     # cut out text lines coming after splitter if there are no markers there
-    quotation = re.search('(se*)+((t|f)+e*)+', markers)
+    quotation = re.search("(se*)+((t|f)+e*)+", markers)
     if quotation:
         return_flags[:] = [True, quotation.start(), len(lines)]
-        return lines[:quotation.start()]
+        return lines[: quotation.start()]
 
     # handle the case with markers
-    quotation = (RE_QUOTATION.search(markers) or
-                 RE_EMPTY_QUOTATION.search(markers))
+    quotation = RE_QUOTATION.search(markers) or RE_EMPTY_QUOTATION.search(markers)
 
     if quotation:
         return_flags[:] = True, quotation.start(1), quotation.end(1)
-        return lines[:quotation.start(1)] + lines[quotation.end(1):]
+        return lines[: quotation.start(1)] + lines[quotation.end(1) :]
 
     return_flags[:] = [False, -1, -1]
     return lines
 
 
-def preprocess(msg_body, delimiter, content_type='text/plain'):
+def preprocess(msg_body, delimiter, content_type="text/plain"):
     """Prepares msg_body for being stripped.
 
     Replaces link brackets so that they couldn't be taken for quotation marker.
@@ -347,10 +405,10 @@ def _replace_link_brackets(msg_body):
     Converts msg_body into a unicode
     """
     if isinstance(msg_body, bytes):
-        msg_body = msg_body.decode('utf8')
+        msg_body = msg_body.decode("utf8")
 
     def link_wrapper(link):
-        newline_index = msg_body[:link.start()].rfind("\n")
+        newline_index = msg_body[: link.start()].rfind("\n")
         if msg_body[newline_index + 1] == ">":
             return link.group()
         else:
@@ -360,19 +418,20 @@ def _replace_link_brackets(msg_body):
     return msg_body
 
 
-def _wrap_splitter_with_newline(msg_body, delimiter, content_type='text/plain'):
+def _wrap_splitter_with_newline(msg_body, delimiter, content_type="text/plain"):
     """
     Splits line in two if splitter pattern preceded by some text on the same
     line (done only for 'On <date> <person> wrote:' pattern.
     """
+
     def splitter_wrapper(splitter):
         """Wraps splitter with new line"""
-        if splitter.start() and msg_body[splitter.start() - 1] != '\n':
-            return '%s%s' % (delimiter, splitter.group())
+        if splitter.start() and msg_body[splitter.start() - 1] != "\n":
+            return "%s%s" % (delimiter, splitter.group())
         else:
             return splitter.group()
 
-    if content_type == 'text/plain':
+    if content_type == "text/plain":
         msg_body = re.sub(RE_ON_DATE_SMB_WROTE, splitter_wrapper, msg_body)
 
     return msg_body
@@ -383,7 +442,7 @@ def postprocess(msg_body):
 
     Replace link brackets back to '<' and '>'.
     """
-    return re.sub(RE_NORMALIZED_LINK, r'<\1>', msg_body).strip()
+    return re.sub(RE_NORMALIZED_LINK, r"<\1>", msg_body).strip()
 
 
 def extract_from_plain(msg_body):
@@ -422,13 +481,13 @@ def extract_from_html(msg_body):
     Returns a unicode string.
     """
     if isinstance(msg_body, six.text_type):
-        msg_body = msg_body.encode('utf8')
+        msg_body = msg_body.encode("utf8")
     elif not isinstance(msg_body, bytes):
-        msg_body = msg_body.encode('ascii')
+        msg_body = msg_body.encode("ascii")
 
     result = _extract_from_html(msg_body)
     if isinstance(result, bytes):
-        result = result.decode('utf8')
+        result = result.decode("utf8")
 
     return result
 
@@ -452,10 +511,10 @@ def _extract_from_html(msg_body):
     then checking deleted checkpoints,
     then deleting necessary tags.
     """
-    if msg_body.strip() == b'':
+    if msg_body.strip() == b"":
         return msg_body
 
-    msg_body = msg_body.replace(b'\r\n', b'\n')
+    msg_body = msg_body.replace(b"\r\n", b"\n")
 
     msg_body = re.sub(r"\<\?xml.+\?\>|\<\!DOCTYPE.+]\>", "", msg_body)
 
@@ -464,19 +523,20 @@ def _extract_from_html(msg_body):
     if html_tree is None:
         return msg_body
 
-    cut_quotations = (html_quotations.cut_gmail_quote(html_tree) or
-                      html_quotations.cut_zimbra_quote(html_tree) or
-                      html_quotations.cut_blockquote(html_tree) or
-                      html_quotations.cut_microsoft_quote(html_tree) or
-                      html_quotations.cut_by_id(html_tree) or
-                      html_quotations.cut_from_block(html_tree)
-                      )
+    cut_quotations = (
+        html_quotations.cut_gmail_quote(html_tree)
+        or html_quotations.cut_zimbra_quote(html_tree)
+        or html_quotations.cut_blockquote(html_tree)
+        or html_quotations.cut_microsoft_quote(html_tree)
+        or html_quotations.cut_by_id(html_tree)
+        or html_quotations.cut_from_block(html_tree)
+    )
     html_tree_copy = deepcopy(html_tree)
 
     number_of_checkpoints = html_quotations.add_checkpoint(html_tree, 0)
     quotation_checkpoints = [False] * number_of_checkpoints
     plain_text = html_tree_to_text(html_tree)
-    plain_text = preprocess(plain_text, '\n', content_type='text/html')
+    plain_text = preprocess(plain_text, "\n", content_type="text/html")
     lines = plain_text.splitlines()
 
     # Don't process too long messages
@@ -485,13 +545,15 @@ def _extract_from_html(msg_body):
 
     # Collect checkpoints on each line
     line_checkpoints = [
-        [int(i[4:-4])  # Only checkpoint number
-         for i in re.findall(html_quotations.CHECKPOINT_PATTERN, line)]
-        for line in lines]
+        [
+            int(i[4:-4])  # Only checkpoint number
+            for i in re.findall(html_quotations.CHECKPOINT_PATTERN, line)
+        ]
+        for line in lines
+    ]
 
     # Remove checkpoints
-    lines = [re.sub(html_quotations.CHECKPOINT_PATTERN, '', line)
-             for line in lines]
+    lines = [re.sub(html_quotations.CHECKPOINT_PATTERN, "", line) for line in lines]
 
     # Use plain text quotation extracting algorithm
     markers = mark_message_lines(lines)
@@ -503,15 +565,13 @@ def _extract_from_html(msg_body):
         return msg_body
 
     if lines_were_deleted:
-        #collect checkpoints from deleted lines
+        # collect checkpoints from deleted lines
         for i in range(first_deleted, last_deleted):
             for checkpoint in line_checkpoints[i]:
                 quotation_checkpoints[checkpoint] = True
 
         # Remove tags with quotation checkpoints
-        html_quotations.delete_quotation_tags(
-            html_tree_copy, 0, quotation_checkpoints
-        )
+        html_quotations.delete_quotation_tags(html_tree_copy, 0, quotation_checkpoints)
 
     if _readable_text_empty(html_tree_copy):
         return msg_body
@@ -574,7 +634,7 @@ def remove_namespaces(root):
         # If the tag includes a colon
         idx = child.tag.rfind("U0003A")
         if idx != -1:
-            child.tag = child.tag[idx+6:]
+            child.tag = child.tag[idx + 6 :]
 
     return root
 
@@ -613,12 +673,12 @@ def _mark_quoted_email_splitlines(markers, lines):
     # Create a list of markers to easily alter specific characters
     markerlist = list(markers)
     for i, line in enumerate(lines):
-        if markerlist[i] != 'm':
+        if markerlist[i] != "m":
             continue
         for pattern in SPLITTER_PATTERNS:
             matcher = re.search(pattern, line)
             if matcher:
-                markerlist[i] = 's'
+                markerlist[i] = "s"
                 break
 
     return "".join(markerlist)
@@ -633,15 +693,15 @@ def _correct_splitlines_in_headers(markers, lines):
     in_header_block = False
     for m in markers:
         # Only set in_header_block flag when we hit an 's' and line is a header
-        if m == 's':
+        if m == "s":
             if not in_header_block:
                 if bool(re.search(RE_HEADER, lines[i])):
                     in_header_block = True
             else:
                 if QUOT_PATTERN.match(lines[i]):
-                    m = 'm'
+                    m = "m"
                 else:
-                    m = 't'
+                    m = "t"
 
         # If the line is not a header line, set in_header_block false.
         if not bool(re.search(RE_HEADER, lines[i])):
@@ -659,10 +719,10 @@ def _readable_text_empty(html_tree):
 
 
 def is_splitter(line):
-    '''
+    """
     Returns Matcher object if provided string is a splitter and
     None otherwise.
-    '''
+    """
     for pattern in SPLITTER_PATTERNS:
         matcher = re.match(pattern, line)
         if matcher:
@@ -670,17 +730,17 @@ def is_splitter(line):
 
 
 def text_content(context):
-    '''XPath Extension function to return a node text content.'''
+    """XPath Extension function to return a node text content."""
     return context.context_node.xpath("string()").strip()
 
 
 def tail(context):
-    '''XPath Extension function to return a node tail text.'''
-    return context.context_node.tail or ''
+    """XPath Extension function to return a node tail text."""
+    return context.context_node.tail or ""
 
 
 def register_xpath_extensions():
     ns = etree.FunctionNamespace("http://mailgun.net")
-    ns.prefix = 'mg'
-    ns['text_content'] = text_content
-    ns['tail'] = tail
+    ns.prefix = "mg"
+    ns["text_content"] = text_content
+    ns["tail"] = tail

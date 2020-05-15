@@ -36,7 +36,7 @@ def safe_format(format_string, *args, **kwargs):
 
     # ignore other errors
     except:
-        return u''
+        return u""
 
 
 def to_unicode(str_or_unicode, precise=False):
@@ -49,8 +49,8 @@ def to_unicode(str_or_unicode, precise=False):
     If `precise` flag is True, tries to guess the correct encoding first.
     """
     if not isinstance(str_or_unicode, six.text_type):
-        encoding = quick_detect_encoding(str_or_unicode) if precise else 'utf-8'
-        return six.text_type(str_or_unicode, encoding, 'replace')
+        encoding = quick_detect_encoding(str_or_unicode) if precise else "utf-8"
+        return six.text_type(str_or_unicode, encoding, "replace")
     return str_or_unicode
 
 
@@ -64,10 +64,10 @@ def detect_encoding(string):
     try:
         detected = chardet.detect(string)
         if detected:
-            return detected.get('encoding') or 'utf-8'
+            return detected.get("encoding") or "utf-8"
     except Exception as e:
         pass
-    return 'utf-8'
+    return "utf-8"
 
 
 def quick_detect_encoding(string):
@@ -80,7 +80,7 @@ def quick_detect_encoding(string):
     try:
         detected = cchardet.detect(string)
         if detected:
-            return detected.get('encoding') or detect_encoding(string)
+            return detected.get("encoding") or detect_encoding(string)
     except Exception as e:
         pass
     return detect_encoding(string)
@@ -98,10 +98,11 @@ def to_utf8(str_or_unicode):
 
 
 def random_token(length=7):
-    vals = ("a b c d e f g h i j k l m n o p q r s t u v w x y z "
-            "0 1 2 3 4 5 6 7 8 9").split(' ')
+    vals = (
+        "a b c d e f g h i j k l m n o p q r s t u v w x y z " "0 1 2 3 4 5 6 7 8 9"
+    ).split(" ")
     shuffle(vals)
-    return ''.join(vals[:length])
+    return "".join(vals[:length])
 
 
 def get_delimiter(msg_body):
@@ -109,16 +110,16 @@ def get_delimiter(msg_body):
     if delimiter:
         delimiter = delimiter.group()
     else:
-        delimiter = '\n'
+        delimiter = "\n"
 
     return delimiter
 
 
 def html_tree_to_text(tree):
-    for style in CSSSelector('style')(tree):
+    for style in CSSSelector("style")(tree):
         style.getparent().remove(style)
 
-    for c in tree.xpath('//comment()'):
+    for c in tree.xpath("//comment()"):
         parent = c.getparent()
 
         # comment with no parent does not impact produced text
@@ -129,21 +130,20 @@ def html_tree_to_text(tree):
 
     text = ""
     for el in tree.iter():
-        el_text = (el.text or '') + (el.tail or '')
+        el_text = (el.text or "") + (el.tail or "")
         if len(el_text) > 1:
             if el.tag in _BLOCKTAGS + _HARDBREAKS:
                 text += "\n"
-            if el.tag == 'li':
+            if el.tag == "li":
                 text += "  * "
             text += el_text.strip() + " "
 
             # add href to the output
-            href = el.attrib.get('href')
+            href = el.attrib.get("href")
             if href:
                 text += "(%s) " % href
 
-        if (el.tag in _HARDBREAKS and text and
-            not text.endswith("\n") and not el_text):
+        if el.tag in _HARDBREAKS and text and not text.endswith("\n") and not el_text:
             text += "\n"
 
     retval = _rm_excessive_newlines(text)
@@ -162,7 +162,7 @@ def html_to_text(string):
         3. if html can't be parsed returns None
     """
     if isinstance(string, six.text_type):
-        string = string.encode('utf8')
+        string = string.encode("utf8")
 
     s = _prepend_utf8_declaration(string)
     s = s.replace(b"\n", b"")
@@ -178,7 +178,7 @@ def html_fromstring(s):
     """Parse html tree from string. Return None if the string can't be parsed.
     """
     if isinstance(s, six.text_type):
-        s = s.encode('utf8')
+        s = s.encode("utf8")
     try:
         if html_too_big(s):
             return None
@@ -192,7 +192,7 @@ def html_document_fromstring(s):
     """Parse html tree from string. Return None if the string can't be parsed.
     """
     if isinstance(s, six.text_type):
-        s = s.encode('utf8')
+        s = s.encode("utf8")
     try:
         if html_too_big(s):
             return None
@@ -208,14 +208,14 @@ def cssselect(expr, tree):
 
 def html_too_big(s):
     if isinstance(s, six.text_type):
-        s = s.encode('utf8')
-    return s.count(b'<') > _MAX_TAGS_COUNT
+        s = s.encode("utf8")
+    return s.count(b"<") > _MAX_TAGS_COUNT
 
 
 def _contains_charset_spec(s):
     """Return True if the first 4KB contain charset spec
     """
-    return s.lower().find(b'html; charset=', 0, 4096) != -1
+    return s.lower().find(b"html; charset=", 0, 4096) != -1
 
 
 def _prepend_utf8_declaration(s):
@@ -233,7 +233,7 @@ def _rm_excessive_newlines(s):
 def _encode_utf8(s):
     """Encode in 'utf-8' if unicode
     """
-    return s.encode('utf-8') if isinstance(s, six.text_type) else s
+    return s.encode("utf-8") if isinstance(s, six.text_type) else s
 
 
 def _html5lib_parser():
@@ -247,15 +247,16 @@ def _html5lib_parser():
         # remove namespace value from inside lxml.html.html5paser element tag
         # otherwise it yields something like "{http://www.w3.org/1999/xhtml}div"
         # instead of "div", throwing the algo off
-        namespaceHTMLElements=False
+        namespaceHTMLElements=False,
     )
 
 
-_UTF8_DECLARATION = (b'<meta http-equiv="Content-Type" content="text/html;'
-                     b'charset=utf-8">')
+_UTF8_DECLARATION = (
+    b'<meta http-equiv="Content-Type" content="text/html;' b'charset=utf-8">'
+)
 
-_BLOCKTAGS = ['div', 'p', 'ul', 'li', 'h1', 'h2', 'h3']
-_HARDBREAKS = ['br', 'hr', 'tr']
+_BLOCKTAGS = ["div", "p", "ul", "li", "h1", "h2", "h3"]
+_HARDBREAKS = ["br", "hr", "tr"]
 
 _RE_EXCESSIVE_NEWLINES = re.compile("\n{2,10}")
 
