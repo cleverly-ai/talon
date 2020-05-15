@@ -153,6 +153,11 @@ def extract_names(sender):
     >>> extract_names('')
     []
     """
+
+    # Make sure sender is not None
+    sender = sender or ""
+
+    # Convert to unicode
     sender = to_unicode(sender, precise=True)
     # Remove non-alphabetical characters
     sender = "".join([char if char.isalpha() else " " for char in sender])
