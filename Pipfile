@@ -1,0 +1,42 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+black = "*"
+jedi = "*"
+json-rpc = "*"
+service-factory = "*"
+flake8 = "*"
+pytest = "*"
+autoflake = "*"
+s3pypi = "*"
+twine = "*"
+pipenv-setup = "*"
+bumpversion = "*"
+ipython = "*"
+importmagic = "*"
+epc = "*"
+mock = "*"
+nose = ">=1.2.1"
+coverage = "*"
+
+[packages]
+lxml = ">=2.3.3"
+regex = ">=1"
+numpy = "*"
+scipy = "*"
+scikit-learn = "*"
+chardet = ">=1.0.1"
+cchardet = ">=0.3.5"
+cssselect = "*"
+six = ">=1.10.0"
+html5lib = "*"
+joblib = "*"
+
+[requires]
+python_version = "3.6"
+
+[pipenv]
+allow_prereleases = true
