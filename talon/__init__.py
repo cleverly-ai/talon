@@ -9,6 +9,9 @@ except ImportError:
     ML_ENABLED = False
 
 
+__version__ = "1.4.8"
+
+
 def init():
     register_xpath_extensions()
     if ML_ENABLED:
