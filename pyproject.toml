@@ -1,0 +1,44 @@
+[tool.poetry]
+name = "talon"
+version = "1.5.1"
+description = "Mailgun library \" \"to extract message quotations and signatures."
+authors = ["Mailgun Inc. <admin@mailgunhq.com>"]
+license = "APACHE2"
+readme = "README.rst"
+include = [
+    "LICENSE",
+    "README.rst",
+    "talon/signature/data/train.data",
+    "talon/signature/data/classifier",
+    "talon/signature/data/classifier_01.npy",
+    "talon/signature/data/classifier_02.npy",
+    "talon/signature/data/classifier_03.npy",
+    "talon/signature/data/classifier_04.npy",
+    "talon/signature/data/classifier_05.npy"
+]
+
+[tool.poetry.dependencies]
+python = "^3.6.10"
+lxml = ">=2.3.3"
+regex = ">=1"
+chardet = ">=1.0.1"
+cchardet = ">=0.3.5"
+cssselect = "^1.1.0"
+six = ">=1.10.0"
+html5lib = "^1.1"
+numpy = "^1.19.2"
+scipy = "^1.5.3"
+scikit-learn = "^0.23.2"
+joblib = "^0.17.0"
+
+[tool.poetry.dev-dependencies]
+mock = "^4.0.2"
+nose = ">=1.2.1"
+coverage = "^5.3"
+
+[tool.poetry.extras]
+ml = ["numpy", "scipy", "scikit-learn"]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
